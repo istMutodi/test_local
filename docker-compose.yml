@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+
+  #########################################
+  # DBサーバ コンテナ
+  #########################################
+  db:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    image: test-postgres
+    container_name: db-container
+    restart: always
+    volumes:
+      # DB永続化
+      - ./db/data:/var/lib/postgresql/data
+      # 初期化ビルド時に一度だけ実行される（リビルドでは実行されない）
+      # 再度実行したい場合、DB永続化のためにマウントした「./postgres/data/*」の
+      # 資産を全て削除する（それまでのデータは全て消えます）。
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+    ports:
+      - 30000:80
+    env_file:
+      - ./db/local/.env_postgre
+    networks:
+      - local_common_network
+
+  #########################################
+  # DB管理WEBシステム（adminer）コンテナ
+  #########################################
+  adminer:
+    build:
+      context: ./adminer
+      dockerfile: Dockerfile
+    image: test-adminer
+    container_name: adminer-container
+    restart: always
+    ports:
+      - 30001:8080
+    networks:
+      - local_common_network
+
+  #########################################
+  # redis セッションDB コンテナ
+  #########################################
+  redis:
+    build:
+      context: ./redis
+      dockerfile: Dockerfile
+    image: test-redis
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - local_common_network
+
+networks:
+  local_common_network:
+    name: test.network
